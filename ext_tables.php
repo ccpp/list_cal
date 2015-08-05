@@ -45,3 +45,7 @@ mod.web_listcal {
 		}
 	}
 }');
+
+\TYPO3\CMS\Backend\Sprite\SpriteManager::addSingleIcons(array(
+	'status-overlay-record-new' => \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extRelPath($_EXTKEY) . 'Resources/Public/Icons/status-overlay-record-new.png',
+       	$_EXTKEY));

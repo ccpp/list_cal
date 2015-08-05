@@ -2,6 +2,7 @@
 namespace TYPO3\ListCal\RecordList;
 
 use TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
@@ -10,45 +11,78 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $startTimestamp;
 	protected $endTimestamp;
 	protected $slots;
+	protected $tableInfo;
 
 	public function generateList() {
 		// Initialize (month/week/...) view:
-		$this->startTimestamp = strtotime("first day of this month 0:0", $GLOBALS['EXEC_TIME']);
-		$this->endTimestamp = strtotime("first day of next month 0:0", $GLOBALS['EXEC_TIME']);
+		$this->viewType = 'month';
+		//$this->referenceTime = mktime(0, 0, 0, $month);
+		$this->referenceTime = $GLOBALS['EXEC_TIME'];
+		#$this->startTimestamp = strtotime("first day of this month 0:0", $this->referenceTime);
+		#$this->endTimestamp = strtotime("first day of next month 0:0", $this->referenceTime);
 		$this->slots = array();
 
 		// Prepare tables, generate empty HTML
 		$dummyHTML = parent::generateList();
 
-		if (empty($this->slots)) {
-			return '';
-		}
-
 		// TODO moduleToken
 		$this->HTMLcode .= '<form name="dblistForm" method="post" action="mod.php?M=web_listcal">' . PHP_EOL;
+		if (count($this->tableInfo)) {
+			$tableNames = array();
+			foreach ($this->tableInfo as $tableName => $tableInfo) {
+				$tableNames[$tableName] = $GLOBALS['LANG']->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
+			}
+			$this->HTMLcode .= '<p>Tables: ' . implode($tableNames, ', ') . '</p>' . PHP_EOL;
+		}
 		ksort($this->slots);
 
 		foreach ($this->slots as $year => &$rowsByMonth) {
 			$this->HTMLcode .= '<h2>' . $year . '</h2>';
 			ksort($rowsByMonth);
+			$this->HTMLcode .= '<table class="t3-page-columns t3-gridTable"><thead><tr>';
 			foreach ($rowsByMonth as $month => &$rowsByDay) {
-				$this->HTMLcode .= '<h3>' . date('F', mktime(0, 0, 0, $month)) . '</h3>';
-				ksort($rowsByDay);
-				foreach ($rowsByDay as $mday => &$rows) {
+				$this->HTMLcode .= '<th>' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '</th>';
+			}
+			$this->HTMLcode .= "</tr></thead>";
+			$this->HTMLcode .= "<tbody><tr>";
+			foreach ($rowsByMonth as $month => &$rowsByDay) {
+				$nDays = date('d', mktime(0, 0, 0, $month+1, 0, $year));
+				$this->HTMLcode .= "<td>";
+				for ($mday = 1; $mday <= $nDays; $mday++) {
+					$timestamp = mktime(9, 0, 0, $month, $mday, $year);
 					$this->HTMLcode .= '<table class="typo3-dblist" cellspacing="0" cellpadding="0" border="0"><tbody>' . PHP_EOL;
 					$this->HTMLcode .= '<tr class="c-table-row-spacer"></tr>' . PHP_EOL;	// what for?
 					$this->HTMLcode .= '<tr class="t3-row-header">' . PHP_EOL;
-					$this->HTMLcode .= '<td class="col-icon" nowrap="nowrap">' . PHP_EOL;
-					$this->HTMLcode .= '? </td>';
+					$this->HTMLcode .= '<td class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'mod1/list_cal.gif" /></td>' . PHP_EOL;
 					$this->HTMLcode .= '<td class="" nowrap="nowrap" colspan="6">' . strftime("%A %B %e", mktime(0, 0, 0, $month, $mday, $year)) . '</td>' . PHP_EOL;
 					$this->HTMLcode .= '</tr>';
 
+					$this->HTMLcode .= '<tr class="c-headline">' . PHP_EOL;
+					$this->HTMLcode .= '<td class="col-icon" nowrap="nowrap" colspan="6">';
+					foreach ($this->tableInfo as $tableName => $tableInfo) {
+						$onClick = BackendUtility::editOnClick($parameters, '', GeneralUtility::linkThisScript());
+						$params = '&edit[' . $tableName . '][' . $this->id . ']=new&defVals[' . $tableName . '][' . $tableInfo['dateColumn'] . ']=' . $timestamp;
+
+						$overlay = IconUtility::getSpriteIcon('extensions--status-overlay-record-new');
+
+						$this->HTMLcode .= '<a href="#" onclick="' .
+							htmlspecialchars(BackendUtility::editOnClick($params, $this->backPath, -1)) .
+							'" title="' . $GLOBALS['LANG']->getLL('new', TRUE) . ' (' . $tableNames[$tableName] . ')">' .
+							IconUtility::getSpriteIconForRecord($tableName, array(), array(
+								'html' => $overlay,
+							)) . '</a> &nbsp;';
+					}
+					$this->HTMLcode .= '</td>';
+					$this->HTMLcode .= '</tr>' . PHP_EOL;
+
 					$cc = 0;
-					ksort($rows);	// order by timestamp
 					$rowsTable = array();
-					foreach ($rows as $tstamp => &$rows2) {
-						foreach ($rows2 as $row) {
-							$rowsTable[$row['uid']] = $row;
+					if ($rowsByDay[$mday]) {
+						ksort($rowsByDay[$mday]);	// order by timestamp
+						foreach ($rowsByDay[$mday] as $tstamp => &$rows2) {
+							foreach ($rows2 as $row) {
+								$rowsTable[$row['uid']] = $row;
+							}
 						}
 					}
 
@@ -65,9 +99,11 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 					$this->HTMLcode .= $this->renderListNavigation('bottom');
 					$this->HTMLcode .= '</tbody></table>' . PHP_EOL;
 				}
+				$this->HTMLcode .= "</td>";
 			}
 		}
 
+		$this->HTMLcode .= "</tbody></table>";
 		$this->HTMLcode .= '</form>' . PHP_EOL;
 	}
 
@@ -84,7 +120,13 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 		$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
 		$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
-		$addWhere = 'AND ' . $table . '.' . $dateColumn . ' >= ' . $this->startTimestamp . ' AND ' . $table . '.' . $dateColumn . ' < ' . $this->endTimestamp;
+		$addWhere = '';
+		if ($this->startTimestamp) {
+			$addWhere .= 'AND ' . $table . '.' . $dateColumn . ' >= ' . $this->startTimestamp . ' ';
+		}
+		if ($this->endTimestamp) {
+			$addWhere .= 'AND ' . $table . '.' . $dateColumn . ' < ' . $this->endTimestamp . ' ';
+		}
 
 		// Creating the list of fields to include in the SQL query:
 		$selectFields = $this->fieldArray;
@@ -140,6 +182,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		}
 
 		if ($dbCount) {
+			$this->tableInfo[$table]['dateColumn'] = $dateColumn;
 			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
 				$dateinfo = getdate($row[$dateColumn]);
 				// TODO what about week view?
