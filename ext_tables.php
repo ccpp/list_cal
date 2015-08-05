@@ -43,6 +43,9 @@ mod.web_listcal {
 		tx_news_domain_model_news {
 			dateColumn = datetime
 		}
+		tt_news {
+			dateColumn = datetime
+		}
 	}
 }');
 
