@@ -6,11 +6,14 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $startTimestamp;
 	protected $endTimestamp;
 	protected $slots;
+	protected $nOtherTables;
+	protected $nContent;
 	protected $tableInfo;
 
 	public function generateList() {
@@ -21,6 +24,10 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		#$this->startTimestamp = strtotime("first day of this month 0:0", $this->referenceTime);
 		#$this->endTimestamp = strtotime("first day of next month 0:0", $this->referenceTime);
 		$this->slots = array();
+		$this->nOtherTables = 0;
+		$this->nContent = 0;
+
+		$GLOBALS['LANG']->includeLLFile('EXT:list_cal/locallang_mod_web_listcal.xlf');
 
 		// Prepare tables, generate empty HTML
 		$dummyHTML = parent::generateList();
@@ -105,6 +112,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 		$this->HTMLcode .= "</tbody></table>";
 		$this->HTMLcode .= '</form>' . PHP_EOL;
+
+		$this->HTMLcode .= $this->getHeaderFlashMessagesForCurrentPid();
 	}
 
 	public function getTable($table, $id, $fields) {
@@ -113,6 +122,11 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		} else if ($GLOBALS['TCA'][$tableName]['ctrl']['_listcal_dateColumn']) {
 			$dateColumn = $GLOBALS['TCA'][$tableName]['ctrl']['_listcal_dateColumn'];
 		} else {
+			if ($table == 'tt_content') {
+				$this->nContent++;
+			} else {
+				$this->nOtherTables++;
+			}
 			return;
 		}
 
@@ -190,5 +204,38 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 				$this->slots[$dateinfo['year']][$dateinfo['mon']][$dateinfo['mday']][$row[$dateColumn]][] = $row;
 			}
 		}
+	}
+
+	/**
+	 * Generate the flashmessages for current pid
+	 *
+	 * @return string HTML content with flashmessages
+	 */
+	protected function getHeaderFlashMessagesForCurrentPid() {
+		$content = '';
+
+		if ($this->nOtherTables == 0 && $this->nContent == 0)
+			return;
+
+		// Access to list module
+		$moduleLoader = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Module\\ModuleLoader');
+		$moduleLoader->load($GLOBALS['TBE_MODULES']);
+		$modules = $moduleLoader->modules;
+
+		if ($this->nOtherTables && is_array($modules['web']['sub']['list'])) {
+			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
+				$GLOBALS['LANG']->getLL('goToListModuleMessage') . '<br />' .
+				IconUtility::getSpriteIcon('actions-system-list-open') . '<a href="javascript:top.goToModule( \'web_list\',1);">' . $GLOBALS['LANG']->getLL('goToListModule') . '</a>', '', FlashMessage::INFO);
+			$content .= $flashMessage->render();
+		}
+
+		if ($this->nContent && is_array($modules['web']['sub']['layout'])) {
+			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
+				$GLOBALS['LANG']->getLL('goToLayoutModuleMessage') . '<br />' .
+				IconUtility::getSpriteIcon('actions-page-open') . '<a href="javascript:top.goToModule( \'web_layout\',1);">' . $GLOBALS['LANG']->getLL('goToLayoutModule') . '</a>', '', FlashMessage::INFO);
+			$content .= $flashMessage->render();
+		}
+
+		return $content;
 	}
 }
