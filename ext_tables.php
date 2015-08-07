@@ -31,15 +31,6 @@ mod.web_listcal {
 	}
 	table {
 		pages.hideTable = 1
-		be_groups.hideTable = 1
-		be_users.hideTable = 1
-		fe_groups.hideTable = 1
-		fe_users.hideTable = 1
-		sys_file_storage.hideTable = 1
-		sys_filemounts.hideTable = 1
-		sys_language = 1
-		backend_layout.hideTable = 1
-		tx_devlog = 1
 		tx_news_domain_model_news {
 			dateColumn = datetime
 		}

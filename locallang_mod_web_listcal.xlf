@@ -156,6 +156,19 @@
 			<trans-unit id="missingTcaColumnsMessage" xml:space="preserve">
 				<source>Warning: No fields for table "%s" have been found. $TCA['%s']['columns'] does not contain the neccessary definitions.</source>
 			</trans-unit>
+
+			<trans-unit id="goToListModuleMessage">
+				<source>There are records of other tables on this page.</source>
+			</trans-unit>
+			<trans-unit id="goToListModule" xml:space="preserve">
+				<source>Go to list module</source>
+			</trans-unit>
+			<trans-unit id="goToLayoutModuleMessage">
+				<source>There are content records on this page.</source>
+			</trans-unit>
+			<trans-unit id="goToLayoutModule" xml:space="preserve">
+				<source>Go to page module</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>
