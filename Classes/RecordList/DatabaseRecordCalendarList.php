@@ -17,12 +17,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $tableInfo;
 
 	public function generateList() {
-		// Initialize (month/week/...) view:
-		$this->viewType = 'month';
-		//$this->referenceTime = mktime(0, 0, 0, $month);
-		$this->referenceTime = $GLOBALS['EXEC_TIME'];
-		#$this->startTimestamp = strtotime("first day of this month 0:0", $this->referenceTime);
-		#$this->endTimestamp = strtotime("first day of next month 0:0", $this->referenceTime);
+		$this->initializeCalendarView();
+
 		$this->slots = array();
 		$this->nOtherTables = 0;
 		$this->nContent = 0;
@@ -30,8 +26,12 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$GLOBALS['LANG']->includeLLFile('EXT:list_cal/locallang_mod_web_listcal.xlf');
 
 		// Prepare tables, generate empty HTML
-		$dummyHTML = parent::generateList();
+		parent::generateList();
 
+		$this->buildCalendar();
+	}
+
+	protected function buildCalendar() {
 		// TODO moduleToken
 		$this->HTMLcode .= '<form name="dblistForm" method="post" action="mod.php?M=web_listcal">' . PHP_EOL;
 		if (count($this->tableInfo)) {
@@ -56,33 +56,6 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 				$nDays = date('d', mktime(0, 0, 0, $month+1, 0, $year));
 				$this->HTMLcode .= "<td>";
 				for ($mday = 1; $mday <= $nDays; $mday++) {
-					$timestamp = mktime(9, 0, 0, $month, $mday, $year);
-					$this->HTMLcode .= '<table class="typo3-dblist" cellspacing="0" cellpadding="0" border="0"><tbody>' . PHP_EOL;
-					$this->HTMLcode .= '<tr class="c-table-row-spacer"></tr>' . PHP_EOL;	// what for?
-					$this->HTMLcode .= '<tr class="t3-row-header">' . PHP_EOL;
-					$this->HTMLcode .= '<td class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'mod1/list_cal.gif" /></td>' . PHP_EOL;
-					$this->HTMLcode .= '<td class="" nowrap="nowrap" colspan="6">' . strftime("%A %B %e", mktime(0, 0, 0, $month, $mday, $year)) . '</td>' . PHP_EOL;
-					$this->HTMLcode .= '</tr>';
-
-					$this->HTMLcode .= '<tr class="c-headline">' . PHP_EOL;
-					$this->HTMLcode .= '<td class="col-icon" nowrap="nowrap" colspan="6">';
-					foreach ($this->tableInfo as $tableName => $tableInfo) {
-						$onClick = BackendUtility::editOnClick($parameters, '', GeneralUtility::linkThisScript());
-						$params = '&edit[' . $tableName . '][' . $this->id . ']=new&defVals[' . $tableName . '][' . $tableInfo['dateColumn'] . ']=' . $timestamp;
-
-						$overlay = IconUtility::getSpriteIcon('extensions--status-overlay-record-new');
-
-						$this->HTMLcode .= '<a href="#" onclick="' .
-							htmlspecialchars(BackendUtility::editOnClick($params, $this->backPath, -1)) .
-							'" title="' . $GLOBALS['LANG']->getLL('new', TRUE) . ' (' . $tableNames[$tableName] . ')">' .
-							IconUtility::getSpriteIconForRecord($tableName, array(), array(
-								'html' => $overlay,
-							)) . '</a> &nbsp;';
-					}
-					$this->HTMLcode .= '</td>';
-					$this->HTMLcode .= '</tr>' . PHP_EOL;
-
-					$cc = 0;
 					$rowsTable = array();
 					if ($rowsByDay[$mday]) {
 						ksort($rowsByDay[$mday]);	// order by timestamp
@@ -93,18 +66,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 						}
 					}
 
-					$this->totalItems = count($rowsTable);
-					$this->HTMLcode .= $this->renderListNavigation('top'); // TODO test with many records for one day
-					foreach ($rowsTable as $row) {
-						$cc++;
-						$table = $row['__mod_listview_table'];
-						$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
-						$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
-						$this->fieldArray = array($titleCol, $thumbsCol, $this->dateColumns[$table]);
-						$this->HTMLcode .= $this->renderListRow($table, $row, $cc, $titleCol, $thumbsCol);
-					}
-					$this->HTMLcode .= $this->renderListNavigation('bottom');
-					$this->HTMLcode .= '</tbody></table>' . PHP_EOL;
+					$this->HTMLcode .= $this->renderDayBox($rowsTable, $year, $month, $day);
 				}
 				$this->HTMLcode .= "</td>";
 			}
@@ -114,6 +76,62 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$this->HTMLcode .= '</form>' . PHP_EOL;
 
 		$this->HTMLcode .= $this->getHeaderFlashMessagesForCurrentPid();
+	}
+
+	protected function renderDayBox(&$rowsTable, $year, $month, $day) {
+		$timestamp = mktime(9, 0, 0, $month, $mday, $year);
+		$head = '<table class="typo3-dblist" cellspacing="0" cellpadding="0" border="0"><tbody>' . PHP_EOL;
+		$head .= '<tr class="c-table-row-spacer"></tr>' . PHP_EOL;	// what for?
+		$head .= '<tr class="t3-row-header">' . PHP_EOL;
+		$head .= '<td class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'mod1/list_cal.gif" /></td>' . PHP_EOL;
+		$head .= '<td class="" nowrap="nowrap" colspan="6">' . strftime("%A %B %e", mktime(0, 0, 0, $month, $mday, $year)) . '</td>' . PHP_EOL;
+		$head .= '</tr>';
+
+		$head .= '<tr class="c-headline">' . PHP_EOL;
+		$head .= '<td class="col-icon" nowrap="nowrap" colspan="6">';
+		foreach ($this->tableInfo as $tableName => $tableInfo) {
+			$onClick = BackendUtility::editOnClick($parameters, '', GeneralUtility::linkThisScript());
+			$params = '&edit[' . $tableName . '][' . $this->id . ']=new&defVals[' . $tableName . '][' . $tableInfo['dateColumn'] . ']=' . $timestamp;
+
+			$overlay = IconUtility::getSpriteIcon('extensions--status-overlay-record-new');
+
+			$head .= '<a href="#" onclick="' .
+				htmlspecialchars(BackendUtility::editOnClick($params, $this->backPath, -1)) .
+				'" title="' . $GLOBALS['LANG']->getLL('new', TRUE) . ' (' . $tableNames[$tableName] . ')">' .
+				IconUtility::getSpriteIconForRecord($tableName, array(), array(
+					'html' => $overlay,
+				)) . '</a> &nbsp;';
+		}
+		$head .= '</td>';
+		$head .= '</tr>' . PHP_EOL;
+
+		$cc = 0;
+
+		$this->totalItems = count($rowsTable);
+		$head .= $this->renderListNavigation('top'); // TODO test with many records for one day
+		$body = '';
+		foreach ($rowsTable as $row) {
+			$cc++;
+			$table = $row['__mod_listview_table'];
+			$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
+			$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
+			$this->fieldArray = array($titleCol, $thumbsCol, $this->dateColumns[$table]);
+			$body .= $this->renderListRow($table, $row, $cc, $titleCol, $thumbsCol);
+		}
+		$tail = $this->renderListNavigation('bottom');
+		$tail .= '</tbody></table>' . PHP_EOL;
+
+		return $head . $body . $tail;
+	}
+
+	protected function initializeCalendarView() {
+		// TODO get arguments
+		// Initialize (month/week/...) view:
+		$this->viewType = 'month';
+		//$this->referenceTime = mktime(0, 0, 0, $month);
+		$this->referenceTime = $GLOBALS['EXEC_TIME'];
+		#$this->startTimestamp = strtotime("first day of this month 0:0", $this->referenceTime);
+		#$this->endTimestamp = strtotime("first day of next month 0:0", $this->referenceTime);
 	}
 
 	public function getTable($table, $id, $fields) {
