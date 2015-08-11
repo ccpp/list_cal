@@ -18,6 +18,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 	public function generateList() {
 		$this->initializeCalendarView();
+		$this->initializeTables();
 
 		$this->slots = array();
 		$this->nOtherTables = 0;
@@ -37,7 +38,12 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		if (count($this->tableInfo)) {
 			$tableNames = array();
 			foreach ($this->tableInfo as $tableName => $tableInfo) {
-				$tableNames[$tableName] = $GLOBALS['LANG']->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
+				if (!$tableInfo['count'])
+					continue;
+
+				$tableNames[$tableName] =
+					IconUtility::getSpriteIconForRecord($tableName, array()) .
+					$GLOBALS['LANG']->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
 			}
 			$this->HTMLcode .= '<p>Tables: ' . implode($tableNames, ', ') . '</p>' . PHP_EOL;
 		}
@@ -115,13 +121,29 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			$table = $row['__mod_listview_table'];
 			$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
 			$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
-			$this->fieldArray = array($titleCol, $thumbsCol, $this->dateColumns[$table]);
+			$this->fieldArray = array($titleCol, $thumbsCol, $this->tableInfo[$table]['dateColumn']);
 			$body .= $this->renderListRow($table, $row, $cc, $titleCol, $thumbsCol);
 		}
 		$tail = $this->renderListNavigation('bottom');
 		$tail .= '</tbody></table>' . PHP_EOL;
 
 		return $head . $body . $tail;
+	}
+
+	protected function initializeTables() {
+		foreach($GLOBALS['TCA'] as $table => &$config) {
+			if ($this->tableTSconfigOverTCA[$table . '.']['dateColumn']) {
+				$dateColumn = $this->tableTSconfigOverTCA[$table . '.']['dateColumn'];
+			} else if ($config['ctrl']['_listcal_dateColumn']) {
+				$dateColumn = $config['ctrl']['_listcal_dateColumn'];
+			} else {
+				continue;
+			}
+
+			$this->tableInfo[$table] = array(
+				'dateColumn' => $dateColumn,
+			);
+		}
 	}
 
 	protected function initializeCalendarView() {
@@ -135,11 +157,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	}
 
 	public function getTable($table, $id, $fields) {
-		if ($this->tableTSconfigOverTCA[$table . '.']['dateColumn']) {
-			$dateColumn = $this->tableTSconfigOverTCA[$table . '.']['dateColumn'];
-		} else if ($GLOBALS['TCA'][$tableName]['ctrl']['_listcal_dateColumn']) {
-			$dateColumn = $GLOBALS['TCA'][$tableName]['ctrl']['_listcal_dateColumn'];
-		} else {
+		$dateColumn = $this->tableInfo[$table]['dateColumn'];
+		if (!$dateColumn) {
 			if ($table == 'tt_content') {
 				$this->nContent++;
 			} else {
@@ -147,8 +166,6 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			}
 			return;
 		}
-
-		$this->dateColumns[$table] = $dateColumn;
 
 		$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
 		$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
@@ -214,7 +231,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		}
 
 		if ($dbCount) {
-			$this->tableInfo[$table]['dateColumn'] = $dateColumn;
+			$this->tableInfo[$table]['count'] = $dbCount;
 			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
 				$dateinfo = getdate($row[$dateColumn]);
 				// TODO what about week view?
