@@ -72,7 +72,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 						}
 					}
 
-					$this->HTMLcode .= $this->renderDayBox($rowsTable, $year, $month, $day);
+					$this->HTMLcode .= $this->renderDayBox($rowsTable, $year, $month, $day, $rowlist);
 				}
 				$this->HTMLcode .= "</td>";
 			}
@@ -84,7 +84,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$this->HTMLcode .= $this->getHeaderFlashMessagesForCurrentPid();
 	}
 
-	protected function renderDayBox(&$rowsTable, $year, $month, $day) {
+	protected function renderDayBox(&$rowsTable, $year, $month, $day, $rowlist) {
 		$timestamp = mktime(9, 0, 0, $month, $mday, $year);
 		$head = '<table class="typo3-dblist" cellspacing="0" cellpadding="0" border="0"><tbody>' . PHP_EOL;
 		$head .= '<tr class="c-table-row-spacer"></tr>' . PHP_EOL;	// what for?
@@ -122,6 +122,15 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
 			$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
 			$this->fieldArray = array($titleCol, $thumbsCol, $this->tableInfo[$table]['dateColumn']);
+			// Control-Panel
+			if (!GeneralUtility::inList($rowlist, '_CONTROL_')) {
+				$this->fieldArray[] = '_CONTROL_';
+				$this->fieldArray[] = '_AFTERCONTROL_';
+			}
+			// Clipboard
+			if ($this->showClipboard) {
+				$this->fieldArray[] = '_CLIPBOARD_';
+			}
 			$body .= $this->renderListRow($table, $row, $cc, $titleCol, $thumbsCol);
 		}
 		$tail = $this->renderListNavigation('bottom');
@@ -143,6 +152,9 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			$this->tableInfo[$table] = array(
 				'dateColumn' => $dateColumn,
 			);
+			$this->setFields[$table] = array(
+				'uid', 'pid', $config['ctrl']['label'], $config['ctrl']['thumbnail'], '_PATH_', '_CONTROL_'
+			);
 		}
 	}
 
@@ -156,7 +168,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		#$this->endTimestamp = strtotime("first day of next month 0:0", $this->referenceTime);
 	}
 
-	public function getTable($table, $id, $fields) {
+	public function getTable($table, $id, $rowlist) {
 		$dateColumn = $this->tableInfo[$table]['dateColumn'];
 		if (!$dateColumn) {
 			if ($table == 'tt_content') {
