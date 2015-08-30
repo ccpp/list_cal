@@ -80,7 +80,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 						}
 					}
 
-					$this->HTMLcode .= $this->renderDayBox($rowsTable, $year, $month, $day, $rowlist);
+					$this->HTMLcode .= $this->renderDayBox($rowsTable, $timestamp, $rowlist);
 				}
 				$this->HTMLcode .= "</td>";
 			}
@@ -92,13 +92,12 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$this->HTMLcode .= $this->getHeaderFlashMessagesForCurrentPid();
 	}
 
-	protected function renderDayBox(&$rowsTable, $year, $month, $day, $rowlist) {
-		$timestamp = mktime(9, 0, 0, $month, $mday, $year);
+	protected function renderDayBox(&$rowsTable, $timestamp, $rowlist) {
 		$head = '<table class="typo3-dblist" cellspacing="0" cellpadding="0" border="0"><tbody>' . PHP_EOL;
 		$head .= '<tr class="c-table-row-spacer"></tr>' . PHP_EOL;	// what for?
 		$head .= '<tr class="t3-row-header">' . PHP_EOL;
 		$head .= '<td class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'mod1/list_cal.gif" /></td>' . PHP_EOL;
-		$head .= '<td class="" nowrap="nowrap" colspan="6">' . strftime("%A %B %e", mktime(0, 0, 0, $month, $mday, $year)) . '</td>' . PHP_EOL;
+		$head .= '<td class="" nowrap="nowrap" colspan="6">' . strftime("%A %B %e", $timestamp) . '</td>' . PHP_EOL;
 		$head .= '</tr>';
 
 		$head .= '<tr class="c-headline">' . PHP_EOL;
