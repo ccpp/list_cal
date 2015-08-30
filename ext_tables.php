@@ -20,6 +20,12 @@ if (TYPO3_MODE === 'BE') {
 	#	'wizard_element_browser',
 	#	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath($_EXTKEY) . 'Modules/Wizards/ElementBrowserWizard/'
 	#);
+
+	// Override tx_news hook into TCEforms
+	// (Do not call the tx_news hook if 'datetime' is already set using defVars)
+	$GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects']['GeorgRinger\\News\\Hooks\\FormEngine'] = array(
+		 'className' => 'CP\\ListCal\\Xclass\\NewsFormEngineOverride'
+	 );
 }
 
 t3lib_extMgm::addPageTSConfig('
