@@ -15,6 +15,9 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $nOtherTables;
 	protected $nContent;
 	protected $tableInfo;
+	protected $viewType;
+	protected $referenceTime;
+	protected $limitDaysOfWeek;
 
 	public function generateList() {
 		$this->initializeCalendarView();
@@ -62,6 +65,11 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 				$nDays = date('d', mktime(0, 0, 0, $month+1, 0, $year));
 				$this->HTMLcode .= "<td>";
 				for ($mday = 1; $mday <= $nDays; $mday++) {
+					$timestamp = mktime($this->modTSconfig['properties']['newItemHour'], 0, 0, $month, $mday, $year);
+					$dayOfWeek = date('w', $timestamp);
+					if (!in_array($dayOfWeek, $this->limitDaysOfWeek))
+						continue;
+
 					$rowsTable = array();
 					if ($rowsByDay[$mday]) {
 						ksort($rowsByDay[$mday]);	// order by timestamp
@@ -166,6 +174,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$this->referenceTime = $GLOBALS['EXEC_TIME'];
 		#$this->startTimestamp = strtotime("first day of this month 0:0", $this->referenceTime);
 		#$this->endTimestamp = strtotime("first day of next month 0:0", $this->referenceTime);
+
+		$this->limitDaysOfWeek = GeneralUtility::intExplode(',', $this->modTSconfig['properties']['limitDaysOfWeek']);
 	}
 
 	public function getTable($table, $id, $rowlist) {

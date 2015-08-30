@@ -26,9 +26,9 @@ t3lib_extMgm::addPageTSConfig('
 mod.web_listcal < mod.web_list
 mod.web_listcal {
 	# noCreateRecordsLink = 1
-	properties {
-		# allowedNewTables = 
-	}
+	# allowedNewTables = 
+	newItemHour = 9
+	limitDaysOfWeek = 0,1,2,3,4,5,6
 	table {
 		pages.hideTable = 1
 		tx_news_domain_model_news {
