@@ -46,7 +46,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 				$tableNames[$tableName] =
 					IconUtility::getSpriteIconForRecord($tableName, array()) .
-					$GLOBALS['LANG']->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
+					$tableInfo['tableTitle'];
 			}
 			$this->HTMLcode .= '<p>Tables: ' . implode($tableNames, ', ') . '</p>' . PHP_EOL;
 		}
@@ -110,7 +110,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 			$head .= '<a href="#" onclick="' .
 				htmlspecialchars(BackendUtility::editOnClick($params, $this->backPath, -1)) .
-				'" title="' . $GLOBALS['LANG']->getLL('new', TRUE) . ' (' . $tableNames[$tableName] . ')">' .
+				'" title="' . $GLOBALS['LANG']->getLL('new', TRUE) . ' (' . $tableInfo['tableTitle'] . ')">' .
 				IconUtility::getSpriteIconForRecord($tableName, array(), array(
 					'html' => $overlay,
 				)) . '</a> &nbsp;';
@@ -158,6 +158,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 			$this->tableInfo[$table] = array(
 				'dateColumn' => $dateColumn,
+				'tableTitle' => $GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title']),
 			);
 			$this->setFields[$table] = array(
 				'uid', 'pid', $config['ctrl']['label'], $config['ctrl']['thumbnail'], '_PATH_', '_CONTROL_'
