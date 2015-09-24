@@ -169,6 +169,9 @@
 			<trans-unit id="goToLayoutModule" xml:space="preserve">
 				<source>Go to page module</source>
 			</trans-unit>
+			<trans-unit id="noConfiguredTableMessage">
+				<source>There is no configured table to work with this module. (Out of the box, tt_news and tx_news_domain_model_news are configured to work)</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

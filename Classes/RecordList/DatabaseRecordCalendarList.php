@@ -29,6 +29,13 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 		$GLOBALS['LANG']->includeLLFile('EXT:list_cal/locallang_mod_web_listcal.xlf');
 
+		if (!empty($this->tableInfo)) {
+			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
+				$GLOBALS['LANG']->getLL('noConfiguredTableMessage'), '', FlashMessage::INFO);
+			$this->HTMLcode = $flashMessage->render();
+			return;
+		}
+
 		// Prepare tables, generate empty HTML
 		parent::generateList();
 
