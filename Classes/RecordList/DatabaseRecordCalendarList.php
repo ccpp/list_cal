@@ -39,6 +39,13 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		// Prepare tables, generate empty HTML
 		parent::generateList();
 
+		if (empty($this->slots)) {
+			$this->slots = array(
+				date('Y', $this->referenceTime) => array(
+					date('m', $this->referenceTime) => array()
+				));
+		}
+
 		$this->buildCalendar();
 	}
 
