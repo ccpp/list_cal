@@ -4,7 +4,7 @@
  ***************************************************************/
 $EM_CONF[$_EXTKEY] = array(
 	'title' => 'Web>List Calendar',
-	'description' => 'BE calendar for database-records',
+	'description' => 'BE calendar for editing database records (such as news) conveniently',
 	'category' => 'module',
 	'state' => 'alpha',
 	'uploadfolder' => 0,
@@ -13,7 +13,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'author' => 'Christian Plattner',
 	'author_email' => 'ccpp@gmx.at',
 	'author_company' => '',
-	'version' => '0.1.9',
+	'version' => '0.1.11',
 	'_md5_values_when_last_written' => '',
 	'constraints' => array(
 		'depends' => array(
