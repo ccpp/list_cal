@@ -1,0 +1,14 @@
+# Settings.yml for typo3.org documentation rendering
+
+---
+conf.py:
+
+  todo_include_todos: True
+  copyright: 2015 to now
+  project: Web>List Calendar
+  version: 0.1
+
+  #render README.rst, not Documentation/Index.rst
+  master_doc: README
+
+...
