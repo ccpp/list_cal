@@ -11,6 +11,8 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $startTimestamp;
 	protected $endTimestamp;
+	protected $slot;
+	protected $slotInfo;
 	protected $slots;
 	protected $nOtherTables;
 	protected $nContent;
@@ -18,6 +20,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $viewType;
 	protected $referenceTime;
 	protected $limitDaysOfWeek;
+	protected $calendarView;
 
 	public function generateList() {
 		$this->initializeCalendarView();
@@ -39,14 +42,49 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		// Prepare tables, generate empty HTML
 		parent::generateList();
 
-		if (empty($this->slots)) {
-			$this->slots = array(
-				date('Y', $this->referenceTime) => array(
-					date('m', $this->referenceTime) => array()
-				));
+		$this->slot = GeneralUtility::_GP('slot');
+		if (!$this->slot) {
+			$this->slot = $this->calendarView->timestampToSlot($this->referenceTime);
+		}
+
+		$this->buildSlotSelector();
+
+		$this->startTimestamp = $this->calendarView->slotToTimestamp($this->slot);
+		$this->endTimestamp = $this->calendarView->slotToTimestamp($this->calendarView->increaseSlot($this->slot));
+
+		foreach ($this->tableInfo as $table => $tableInfo) {
+			$this->collectRecords($table, $this->id, $tableInfo['rowlist']);
 		}
 
 		$this->buildCalendar();
+	}
+
+	protected function buildSlotSelector() {
+		if (count($this->slots)) {
+			ksort($this->slots);
+			reset($this->slots);
+			$firstSlot = min($this->slot, key($this->slots));
+			end($this->slots);
+			$lastSlot = max($this->slot, key($this->slots));
+		} else {
+			$firstSlot = $lastSlot = $this->slot;
+		}
+		$firstSlot = $this->calendarView->increaseSlot($firstSlot, -3);
+		$lastSlot = $this->calendarView->increaseSlot($lastSlot, 3);
+
+		$this->HTMLcode .= '<h4>Monate</h4>';
+		$this->HTMLcode .= '<div>';
+		for ($slot = $firstSlot; $slot <= $lastSlot; $slot = $this->calendarView->increaseSlot($slot)) {
+			if($_count++ > 100) return;
+			$this->HTMLcode .= '<span style="padding:3px;' .
+				($this->slots[$slot] ? 'font-weight:bold;' : '') .
+				($slot == $this->slot ? 'text-decoration:underline;' : '') .
+				'">' . 
+				'<a href="' . BackendUtility::getModuleUrl(GeneralUtility::_GP('M'), array('id' => $this->id, 'slot' => $slot)) . '">' .
+				$this->calendarView->slotToText($slot, true) . 
+				'</a></span> &nbsp; ';
+		}
+		$this->HTMLcode .= '</div>';
 	}
 
 	protected function buildCalendar() {
@@ -66,38 +104,45 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		}
 		ksort($this->slots);
 
-		foreach ($this->slots as $year => &$rowsByMonth) {
-			$this->HTMLcode .= '<h2>' . $year . '</h2>';
-			ksort($rowsByMonth);
-			$this->HTMLcode .= '<table class="t3-page-columns t3-gridTable"><thead><tr>';
-			foreach ($rowsByMonth as $month => &$rowsByDay) {
-				$this->HTMLcode .= '<th>' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '</th>';
-			}
-			$this->HTMLcode .= "</tr></thead>";
-			$this->HTMLcode .= "<tbody><tr>";
-			foreach ($rowsByMonth as $month => &$rowsByDay) {
-				$nDays = date('d', mktime(0, 0, 0, $month+1, 0, $year));
-				$this->HTMLcode .= "<td>";
-				for ($mday = 1; $mday <= $nDays; $mday++) {
-					$timestamp = mktime($this->modTSconfig['properties']['newItemHour'], 0, 0, $month, $mday, $year);
-					$dayOfWeek = date('w', $timestamp);
-					if (!in_array($dayOfWeek, $this->limitDaysOfWeek))
-						continue;
+		$this->HTMLcode .= '<table class="t3-page-columns t3-gridTable"><thead><tr>';
+		//foreach ($this->slots as $slot => &$rowsBySlot) {
+		$slot = $this->slot;//TODO
+		$rowsBySlot = $this->slots[$slot];//TODO
+			$timestamp = $this->calendarView->slotToTimestamp($slot);
+			$this->HTMLcode .= '<th>' . strftime('%B %Y', $timestamp) . '</th>';
+		//}
+		$this->HTMLcode .= "</tr></thead>";
+		$this->HTMLcode .= "<tbody><tr>";
 
-					$rowsTable = array();
-					if ($rowsByDay[$mday]) {
-						ksort($rowsByDay[$mday]);	// order by timestamp
-						foreach ($rowsByDay[$mday] as $tstamp => &$rows2) {
-							foreach ($rows2 as $row) {
-								$rowsTable[$row['uid']] = $row;
-							}
+		{
+			$slot = $this->slot;//TODO
+			$rowsBySlot = $this->slots[$slot];//TODO
+			$rowsTable = $this->slots[$slot]['rowsTable'];
+			$rowlist = $this->slots[$slot]['rowlist'];
+			$timestamp = $this->calendarView->slotToTimestamp($slot);
+			$month = date('m', $timestamp);//TODO
+			$year = date('Y', $timestamp); //TODO
+			$nDays = date('d', mktime(0, 0, 0, $month+1, 1, $year)-1);//TODO!!
+			$this->HTMLcode .= "<td>";
+			for ($mday = 1; $mday <= $nDays; $mday++) {
+				$timestamp = mktime($this->modTSconfig['properties']['newItemHour'], 0, 0, $month, $mday, $year);
+				$dayOfWeek = date('w', $timestamp);
+				if (!in_array($dayOfWeek, $this->limitDaysOfWeek))
+					continue;
+
+				$rowsTable = array();
+				if ($rowsBySlot[$mday]) {
+					ksort($rowsBySlot[$mday]);	// order by timestamp
+					foreach ($rowsBySlot[$mday] as $tstamp => &$rows2) {
+						foreach ($rows2 as $row) {
+							$rowsTable[$row['uid']] = $row;
 						}
 					}
-
-					$this->HTMLcode .= $this->renderDayBox($rowsTable, $timestamp, $rowlist);
 				}
-				$this->HTMLcode .= "</td>";
+
+				$this->HTMLcode .= $this->renderDayBox($rowsTable, $timestamp, $rowlist);
 			}
+			$this->HTMLcode .= "</td>";
 		}
 
 		$this->HTMLcode .= "</tbody></table>";
@@ -181,6 +226,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	}
 
 	protected function initializeCalendarView() {
+		$this->calendarView = GeneralUtility::makeInstance('TYPO3\\ListCal\\CalendarViews\\MonthView');
 		// TODO get arguments
 		// Initialize (month/week/...) view:
 		$this->viewType = 'month';
@@ -202,6 +248,22 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			}
 			return;
 		}
+
+		$this->tableInfo[$table]['rowlist'] = $rowlist;
+
+		$queryParts = $this->makeQueryArray($table, $id, '', 'COUNT(*) AS count, EXTRACT(YEAR_MONTH FROM FROM_UNIXTIME(' . $dateColumn . ')) as slot');
+		$queryParts['GROUPBY'] = 'slot';
+		$result = $GLOBALS['TYPO3_DB']->exec_SELECT_queryArray($queryParts);
+
+		while($slotInfo = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
+			$this->slots[$slotInfo['slot']]['countByTable'][$table] = $slotInfo['count'];
+		}
+
+		$GLOBALS['TYPO3_DB']->sql_free_result($result);
+	}
+
+	protected function collectRecords($table, $id, $rowlist) {
+		$dateColumn = $this->tableInfo[$table]['dateColumn'];
 
 		$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
 		$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
@@ -251,6 +313,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		// (API function from TYPO3\CMS\Recordlist\RecordList\AbstractDatabaseRecordList)
 		$this->setTotalItems($queryParts);
 
+		$this->iLimit = 10;
+
 		if ($this->totalItems) {
 			// Fetch records only if not in single table mode or if in multi table mode and not collapsed
 			if ($listOnlyInSingleTableMode || !$this->table && $tableCollapsed) {
@@ -259,7 +323,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 				// Set the showLimit to the number of records when outputting as CSV
 				if ($this->csvOutput) {
 					$this->showLimit = $this->totalItems;
-					$this->iLimit = $this->totalItems;
+					$this->iLimit = max($this->totalItems, 1);	// TODO what about many
 				}
 				$result = $GLOBALS['TYPO3_DB']->exec_SELECT_queryArray($queryParts);
 				$dbCount = $GLOBALS['TYPO3_DB']->sql_num_rows($result);
@@ -270,9 +334,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			$this->tableInfo[$table]['count'] = $dbCount;
 			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
 				$dateinfo = getdate($row[$dateColumn]);
-				// TODO what about week view?
 				$row['__mod_listview_table'] = $table;
-				$this->slots[$dateinfo['year']][$dateinfo['mon']][$dateinfo['mday']][$row[$dateColumn]][] = $row;
+				$this->slots[$dateinfo['year'] . $dateinfo['mon']][$dateinfo['mday']][$row[$dateColumn]][] = $row;
 			}
 		}
 	}
