@@ -6,6 +6,12 @@ List Calendar TYPO3 backend module (list_cal)
 
 This extension provides a backend module which lets you manage time-based database record in a calendar.
 
+Content:
+
+- Usage_
+- Configuration_
+- `Bugs? Wishes? Pull requests?`_
+
 Usage
 =====
 
@@ -24,16 +30,14 @@ Sub-keys of TSconfig path mod.web_listcal
 
 .. container:: ts-properties
 
-        ========================= ===============
-        TSconfig property         Data type
-        ========================= ===============
-        newItemHour_              integer
-        limitDaysOfWeek_          list
-        table.[table].hideTable_  bool
-        table.[table].dateColumn_ string
-        ========================= ==============
-
-.. _newItemHour:
+        =========================== ===============
+        TSconfig property           Data type
+        =========================== ===============
+        newItemHour_                integer
+        limitDaysOfWeek_            list
+        `table.[table].hideTable`_  bool
+        `table.[table].dateColumn`_ string
+        =========================== ===============
 
 newItemHour
 ~~~~~~~~~~~
@@ -43,8 +47,6 @@ Hour for new records create for a chosen day. ::
         # Example:
         # New created records will be created with a time of 7PM
         mod.web_listcal.newItemHour = 19
-
-.. _limitDaysOfWeek:
 
 limitDaysOfWeek
 ~~~~~~~~~~~~~~~
@@ -57,8 +59,6 @@ For example, you can include this on a page including your Wednesdays' events: :
         # Show only wednesdays in the BE calendar:
         mod.web_listcal.limitDaysOfWeek = 3
 
-.. _hideTable:
-
 table.[table].hideTable
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -67,8 +67,6 @@ Do not show a certain table in the calendar. ::
         # Example:
         # Do not include tt_news on a page (page TSconfig) or for a certain user group (user TSconfig)
         mod.web_listcal.tables.tt_news.hideTable = 1
-
-.. _dateColumn:
 
 table.[table].dateColumn
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,3 +83,10 @@ For example you can add support for :code:`list_cal` to your TYPO3 extension by 
                         }
                 }
         }');
+
+Bugs? Wishes? Pull requests?
+============================
+
+Please report bugs in TYPO3 forge at https://forge.typo3.org/projects/extension-list_cal/issues/new
+
+Get the latest source using the git repo `https://review.typo3.org/p/TYPO3CMS/Extensions/list_cal.git`.
