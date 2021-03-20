@@ -27,13 +27,16 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$this->slots = array();
 		$this->nOtherTables = 0;
 		$this->nContent = 0;
+		$this->iLimit = 100;
 
 		$GLOBALS['LANG']->includeLLFile('EXT:list_cal/locallang_mod_web_listcal.xlf');
 
 		if (empty($this->tableInfo)) {
 			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
 				$GLOBALS['LANG']->getLL('noConfiguredTableMessage'), '', FlashMessage::INFO);
-			$this->HTMLcode = $flashMessage->render();
+
+			$flashMessageService = GeneralUtility::makeInstance('TYPO3\CMS\Core\Messaging\FlashMessageService');
+			$flashMessageService->getMessageQueueByIdentifier()->addMessage($flashMessage);
 			return;
 		}
 
@@ -269,7 +272,15 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 		// Finding the total amount of records on the page
 		// (API function from TYPO3\CMS\Recordlist\RecordList\AbstractDatabaseRecordList)
-		$this->setTotalItems($queryParts);
+		if (defined('TYPO3_version') && TYPO3_version < 8)
+		{
+			$this->setTotalItems($queryParts);
+		}
+		else
+		{
+			// TYPO3 8 onwards
+			$this->setTotalItems($table, $id, array(/*TODO*/));
+		}
 
 		if ($this->totalItems) {
 			// Fetch records only if not in single table mode or if in multi table mode and not collapsed
@@ -315,21 +326,17 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$modules = $moduleLoader->modules;
 
 		if ($this->nOtherTables && is_array($modules['web']['sub']['list'])) {
-			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
+			$content .= '<p>' .
 				$GLOBALS['LANG']->getLL('goToListModuleMessage') . '<br />' .
 				$iconFactory->getIcon('actions-system-list-open', Icon::SIZE_SMALL) .
-				'<a href="javascript:top.goToModule( \'web_list\',1);">' . $GLOBALS['LANG']->getLL('goToListModule') . '</a>',
-				'', FlashMessage::INFO);
-			$content .= $flashMessage->render();
+				'<a href="javascript:top.goToModule( \'web_list\',1);">' . $GLOBALS['LANG']->getLL('goToListModule') . '</a>';
 		}
 
 		if ($this->nContent && is_array($modules['web']['sub']['layout'])) {
-			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
+			$content .= '<p>' .
 				$GLOBALS['LANG']->getLL('goToLayoutModuleMessage') . '<br />' .
 				$iconFactory->getIcon('actions-page-open', Icon::SIZE_SMALL) .
-				'<a href="javascript:top.goToModule( \'web_layout\',1);">' . $GLOBALS['LANG']->getLL('goToLayoutModule') . '</a>',
-				'', FlashMessage::INFO);
-			$content .= $flashMessage->render();
+				'<a href="javascript:top.goToModule( \'web_layout\',1);">' . $GLOBALS['LANG']->getLL('goToLayoutModule') . '</a>';
 		}
 
 		return $content;
