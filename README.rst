@@ -76,7 +76,7 @@ For example you can add support for :code:`list_cal` to your TYPO3 extension by 
 
         // Add support for TYPO3 extension "list_cal" to my cool extension
         // by adding database field `startDate` to their configuration:
-        t3lib_extMgm::addPageTSConfig('
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig('
                 mod.web_listcal.table {
                         tx_myext_domain_model_mytable {
                                 dateColumn = startDate

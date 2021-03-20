@@ -1,25 +1,24 @@
 <?php
 /***************************************************************
- * Extension Manager/Repository config file for ext "list_CAL".
+ * Extension Manager/Repository config file for ext "list_cal".
  ***************************************************************/
-$EM_CONF[$_EXTKEY] = array(
+$EM_CONF[$_EXTKEY] = array (
 	'title' => 'Web>List Calendar',
 	'description' => 'BE calendar for editing database records (such as news) conveniently',
 	'category' => 'module',
-	'state' => 'alpha',
+	'state' => 'beta',
 	'uploadfolder' => 0,
 	'createDirs' => '',
 	'clearCacheOnLoad' => 0,
 	'author' => 'Christian Plattner',
 	'author_email' => 'ccpp@gmx.at',
 	'author_company' => '',
-	'version' => '0.1.12',
-	'_md5_values_when_last_written' => '',
-	'constraints' => array(
-		'depends' => array(
-			'typo3' => '6.2.0-6.2.99',
+	'version' => '1.0',
+	'constraints' => array (
+		'depends' => array (
+			'typo3' => '6.2.0-7.6.32',
 		),
-		'conflicts' => array(),
-		'suggests' => array(),
+		'conflicts' => array (),
+		'suggests' => array (),
 	),
 );

@@ -4,15 +4,20 @@ if (!defined('TYPO3_MODE')) {
 }
 
 if (TYPO3_MODE === 'BE') {
-	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModulePath(
-		'web_listcal',
-		\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath($_EXTKEY) . 'mod1/'
-	);
 	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
 		'web',
 		'listcal',
 		'',
-		\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath($_EXTKEY) . 'mod1/'
+		'',
+		array (
+			'routeTarget' => 'CP\\ListCal\\RecordListModule::mainAction',
+			'access' => 'user,group',
+			'name' => 'web_listcal',
+			'labels' => array (
+				'tabs_images' => array ('tab' => 'EXT:list_cal/ext_icon.gif'),
+				'll_ref' => 'LLL:EXT:list_cal/locallang_mod_web_listcal.xlf'
+			)
+		)
 	);
 
 	// Register element browser wizard
@@ -28,7 +33,7 @@ if (TYPO3_MODE === 'BE') {
 	 );
 }
 
-t3lib_extMgm::addPageTSConfig('
+\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig('
 mod.web_listcal < mod.web_list
 mod.web_listcal {
 	# noCreateRecordsLink = 1
@@ -45,7 +50,3 @@ mod.web_listcal {
 		}
 	}
 }');
-
-\TYPO3\CMS\Backend\Sprite\SpriteManager::addSingleIcons(array(
-	'status-overlay-record-new' => \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extRelPath($_EXTKEY) . 'Resources/Public/Icons/status-overlay-record-new.png',
-       	$_EXTKEY));

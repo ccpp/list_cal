@@ -1,11 +1,12 @@
 <?php
-namespace TYPO3\ListCal\RecordList;
+namespace CP\ListCal\RecordList;
 
 use TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 class DatabaseRecordCalendarList extends DatabaseRecordList {
@@ -50,6 +51,8 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	}
 
 	protected function buildCalendar() {
+		$iconFactory = GeneralUtility::makeInstance('TYPO3\CMS\Core\Imaging\IconFactory');
+
 		// TODO moduleToken
 		$this->HTMLcode .= '<form name="dblistForm" method="post" action="mod.php?M=web_listcal">' . PHP_EOL;
 		if (count($this->tableInfo)) {
@@ -59,10 +62,10 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 					continue;
 
 				$tableNames[$tableName] =
-					IconUtility::getSpriteIconForRecord($tableName, array()) .
+					$iconFactory->getIconForRecord($tableName, array(), Icon::SIZE_SMALL) .
 					$tableInfo['tableTitle'];
 			}
-			$this->HTMLcode .= '<p>Tables: ' . implode($tableNames, ', ') . '</p>' . PHP_EOL;
+			$this->HTMLcode .= '<p>Tables: ' . implode(', ', $tableNames) . '</p>' . PHP_EOL;
 		}
 		ksort($this->slots);
 
@@ -107,30 +110,44 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	}
 
 	protected function renderDayBox(&$rowsTable, $timestamp, $rowlist) {
-		$head = '<table class="typo3-dblist" cellspacing="0" cellpadding="0" border="0"><tbody>' . PHP_EOL;
-		$head .= '<tr class="c-table-row-spacer"></tr>' . PHP_EOL;	// what for?
-		$head .= '<tr class="t3-row-header">' . PHP_EOL;
-		$head .= '<td class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'mod1/list_cal.gif" /></td>' . PHP_EOL;
-		$head .= '<td class="" nowrap="nowrap" colspan="6">' . strftime("%A %B %e", $timestamp) . '</td>' . PHP_EOL;
-		$head .= '</tr>';
+		$iconFactory = GeneralUtility::makeInstance('TYPO3\CMS\Core\Imaging\IconFactory');
 
-		$head .= '<tr class="c-headline">' . PHP_EOL;
-		$head .= '<td class="col-icon" nowrap="nowrap" colspan="6">';
+		// Box wrapper
+		$head = '<div class="panel panel-space panel-default recordlist">' . PHP_EOL;
+
+		// Header showing date
+		$head .= '<div class="panel-heading">' . PHP_EOL;
+		$head .= '<span class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'ext_icon.gif" /></span>' . PHP_EOL;
+		$head .= '<a title="Collapse" data-table="x" data-toggle="collapse" data-target="#recordlist-' . $timestamp . '">x</a>';
+		$head .= '<span class="" nowrap="nowrap">' . strftime("%A %B %e", $timestamp) . '</span>' . PHP_EOL;
+		$head .= '</div>';
+
+		// Table wrapper
+		$head .= '<div id="recordlist-' . $timestamp . '" class="collapse in" data-state="expanded">';
+		$head .= '<div class="table-fit">';
+		$head .= '<table class="table table-striped table-hover">' . PHP_EOL;
+
+		// 2nd Header with "Add" icon
+		$head .= '<thead><tr>' . PHP_EOL;
+		$head .= '<td class="col-xxx" nowrap="nowrap" colspan="7">';
 		foreach ($this->tableInfo as $tableName => $tableInfo) {
 			$onClick = BackendUtility::editOnClick($parameters, '', GeneralUtility::linkThisScript());
 			$params = '&edit[' . $tableName . '][' . $this->id . ']=new&defVals[' . $tableName . '][' . $tableInfo['dateColumn'] . ']=' . $timestamp;
 
-			$overlay = IconUtility::getSpriteIcon('extensions--status-overlay-record-new');
+			$iconIdentifier = $iconFactory->mapRecordTypeToIconIdentifier($tableName, array());
+			$icon = $iconFactory->getIcon($iconIdentifier, Icon::SIZE_SMALL, 'overlay-new');
 
 			$head .= '<a href="#" onclick="' .
 				htmlspecialchars(BackendUtility::editOnClick($params, $this->backPath, -1)) .
 				'" title="' . $GLOBALS['LANG']->getLL('new', TRUE) . ' (' . $tableInfo['tableTitle'] . ')">' .
-				IconUtility::getSpriteIconForRecord($tableName, array(), array(
-					'html' => $overlay,
-				)) . '</a> &nbsp;';
+				$icon . '</a> &nbsp;';
 		}
 		$head .= '</td>';
 		$head .= '</tr>' . PHP_EOL;
+		$head .= '</thead>';
+		$head .= '<tbody>';
+
+		// Render actual table inside tbody
 
 		$cc = 0;
 
@@ -156,6 +173,9 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		}
 		$tail = $this->renderListNavigation('bottom');
 		$tail .= '</tbody></table>' . PHP_EOL;
+		$tail .= '</div>' . PHP_EOL;	// panel
+		$tail .= '</div>' . PHP_EOL;	// recordlist
+		$tail .= '</div>' . PHP_EOL;	// table-fit
 
 		return $head . $body . $tail;
 	}
@@ -192,7 +212,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		$this->limitDaysOfWeek = GeneralUtility::intExplode(',', $this->modTSconfig['properties']['limitDaysOfWeek']);
 	}
 
-	public function getTable($table, $id, $rowlist) {
+	public function getTable($table, $id, $rowlist = '') {
 		$dateColumn = $this->tableInfo[$table]['dateColumn'];
 		if (!$dateColumn) {
 			if ($table == 'tt_content') {
@@ -283,6 +303,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	 * @return string HTML content with flashmessages
 	 */
 	protected function getHeaderFlashMessagesForCurrentPid() {
+		$iconFactory = GeneralUtility::makeInstance('TYPO3\CMS\Core\Imaging\IconFactory');
 		$content = '';
 
 		if ($this->nOtherTables == 0 && $this->nContent == 0)
@@ -296,14 +317,18 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		if ($this->nOtherTables && is_array($modules['web']['sub']['list'])) {
 			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
 				$GLOBALS['LANG']->getLL('goToListModuleMessage') . '<br />' .
-				IconUtility::getSpriteIcon('actions-system-list-open') . '<a href="javascript:top.goToModule( \'web_list\',1);">' . $GLOBALS['LANG']->getLL('goToListModule') . '</a>', '', FlashMessage::INFO);
+				$iconFactory->getIcon('actions-system-list-open', Icon::SIZE_SMALL) .
+				'<a href="javascript:top.goToModule( \'web_list\',1);">' . $GLOBALS['LANG']->getLL('goToListModule') . '</a>',
+				'', FlashMessage::INFO);
 			$content .= $flashMessage->render();
 		}
 
 		if ($this->nContent && is_array($modules['web']['sub']['layout'])) {
 			$flashMessage = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
 				$GLOBALS['LANG']->getLL('goToLayoutModuleMessage') . '<br />' .
-				IconUtility::getSpriteIcon('actions-page-open') . '<a href="javascript:top.goToModule( \'web_layout\',1);">' . $GLOBALS['LANG']->getLL('goToLayoutModule') . '</a>', '', FlashMessage::INFO);
+				$iconFactory->getIcon('actions-page-open', Icon::SIZE_SMALL) .
+				'<a href="javascript:top.goToModule( \'web_layout\',1);">' . $GLOBALS['LANG']->getLL('goToLayoutModule') . '</a>',
+				'', FlashMessage::INFO);
 			$content .= $flashMessage->render();
 		}
 
