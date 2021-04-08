@@ -4,15 +4,25 @@ if (!defined('TYPO3_MODE')) {
 }
 
 if (TYPO3_MODE === 'BE') {
+	if (defined('TYPO3_version') && TYPO3_version < 9)
+	{
+		$moduleClass = 'CP\\ListCal\\RecordListModule::mainAction';
+	}
+	else
+	{
+		$moduleClass = 'CP\\ListCal\\Controller\\CalendarModuleController::mainAction';
+	}
+
 	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
 		'web',
 		'listcal',
-		'',
+		'after:list',
 		'',
 		array (
-			'routeTarget' => 'CP\\ListCal\\RecordListModule::mainAction',
+			'routeTarget' => $moduleClass,
 			'access' => 'user,group',
 			'name' => 'web_listcal',
+			'icon' => 'EXT:list_cal/ext_icon.gif',
 			'labels' => array (
 				'tabs_images' => array ('tab' => 'EXT:list_cal/ext_icon.gif'),
 				'll_ref' => 'LLL:EXT:list_cal/locallang_mod_web_listcal.xlf'

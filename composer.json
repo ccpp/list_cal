@@ -1,0 +1,22 @@
+{
+    "name": "ccpp/list-cal",
+    "type": "typo3-cms-extension",
+    "description": "BE calendar for editing database records (such as news) conveniently",
+    "license": "GPL-3.0-only",
+    "require": {
+        "typo3/cms-core": "^8.7 || ^9.5 || ^10.4"
+    },
+    "replace": {
+        "typo3-ter/list-cal": "self.version"
+    },
+    "autoload": {
+       "psr-4": {
+          "CP\\ListCal\\": "Classes/"
+       }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "list_cal"
+        }
+    }
+}

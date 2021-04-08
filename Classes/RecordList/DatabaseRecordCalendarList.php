@@ -8,6 +8,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Database\Query\QueryHelper;
 
 class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $startTimestamp;
@@ -21,6 +22,10 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 	protected $limitDaysOfWeek;
 
 	public function generateList() {
+		if (!$this->tableTSconfigOverTCA) {
+			throw new \Error("Internal error: missing tableTSconfigOverTCA (probably TSconfig for web_listcal is missing)");
+		}
+
 		$this->initializeCalendarView();
 		$this->initializeTables();
 
@@ -75,7 +80,7 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 		foreach ($this->slots as $year => &$rowsByMonth) {
 			$this->HTMLcode .= '<h2>' . $year . '</h2>';
 			ksort($rowsByMonth);
-			$this->HTMLcode .= '<table class="t3-page-columns t3-gridTable"><thead><tr>';
+			$this->HTMLcode .= '<table class="t3-page-columns t3-grid-table"><thead><tr>';
 			foreach ($rowsByMonth as $month => &$rowsByDay) {
 				$this->HTMLcode .= '<th>' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '</th>';
 			}
@@ -120,9 +125,9 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 
 		// Header showing date
 		$head .= '<div class="panel-heading">' . PHP_EOL;
-		$head .= '<span class="col-icon" nowrap="nowrap"><img src="' . ExtensionManagementUtility::extRelPath('list_cal') . 'ext_icon.gif" /></span>' . PHP_EOL;
-		$head .= '<a title="Collapse" data-table="x" data-toggle="collapse" data-target="#recordlist-' . $timestamp . '">x</a>';
+		$head .= '<a class="float-right" title="Collapse" data-toggle="collapse" data-target="#recordlist-' . $timestamp . '">';
 		$head .= '<span class="" nowrap="nowrap">' . strftime("%A %B %e", $timestamp) . '</span>' . PHP_EOL;
+		$head .= '</a>';
 		$head .= '</div>';
 
 		// Table wrapper
@@ -265,22 +270,13 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 			$selectFields = array_merge($selectFields, GeneralUtility::trimExplode(',', $GLOBALS['TCA'][$table]['ctrl']['label_alt'], TRUE));
 		}
 		// Unique list!
-		$selectFields = array_unique($selectFields);
+		$selectFields = array_unique(array_values($selectFields));
 
 		$selFieldList = implode(',', $selectFields);
-		$queryParts = $this->makeQueryArray($table, $id, $addWhere, $selFieldList);
 
-		// Finding the total amount of records on the page
-		// (API function from TYPO3\CMS\Recordlist\RecordList\AbstractDatabaseRecordList)
-		if (defined('TYPO3_version') && TYPO3_version < 8)
-		{
-			$this->setTotalItems($queryParts);
-		}
-		else
-		{
-			// TYPO3 8 onwards
-			$this->setTotalItems($table, $id, array(/*TODO*/));
-		}
+		$additionalConstraints = empty($addWhere) ? [] : [QueryHelper::stripLogicalOperatorPrefix($addWhere)];
+		$queryBuilder = $this->getQueryBuilder($table, $id, $additionalConstraints, $selectFields);
+		$this->setTotalItems($table, $id, $additionalConstraints);
 
 		if ($this->totalItems) {
 			// Fetch records only if not in single table mode or if in multi table mode and not collapsed
@@ -292,14 +288,17 @@ class DatabaseRecordCalendarList extends DatabaseRecordList {
 					$this->showLimit = $this->totalItems;
 					$this->iLimit = $this->totalItems;
 				}
-				$result = $GLOBALS['TYPO3_DB']->exec_SELECT_queryArray($queryParts);
-				$dbCount = $GLOBALS['TYPO3_DB']->sql_num_rows($result);
+
+				$queryBuilder = $this->getQueryBuilder($table, $id, $additionalConstraints, $selectFields);
+				$result = $queryBuilder->execute();
+				$dbCount = $result->rowCount();
 			}
 		}
 
 		if ($dbCount) {
 			$this->tableInfo[$table]['count'] = $dbCount;
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
+
+			while ($row = $result->fetch()) {
 				$dateinfo = getdate($row[$dateColumn]);
 				// TODO what about week view?
 				$row['__mod_listview_table'] = $table;

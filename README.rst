@@ -87,6 +87,6 @@ For example you can add support for :code:`list_cal` to your TYPO3 extension by 
 Bugs? Wishes? Pull requests?
 ============================
 
-Please report bugs in TYPO3 forge at https://forge.typo3.org/projects/extension-list_cal/issues/new
+The project on forge.typo3.org has been archived. Therefore, issues should now be filed at the github repository:
 
-Get the latest source using the git repo `https://review.typo3.org/p/TYPO3CMS/Extensions/list_cal.git`.
+Please report bugs to the issue tracker at https://github.com/ccpp/list_cal/issues.

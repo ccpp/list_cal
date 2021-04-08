@@ -1,6 +1,9 @@
 <?php
 namespace CP\ListCal;
 
+/**
+ * BE Module for TYPO3 v8
+ */
 class RecordListModule extends \TYPO3\CMS\Recordlist\RecordList
 {
 	/**
